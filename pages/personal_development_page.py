@@ -55,9 +55,9 @@ def personal_development_page(page, back_to_main):
             )
         page.update()
 
-    # Функція для додавання нової мети
+    # Функція для додавання нової цілі
     def set_personal_goal(e):
-        goal_input = ft.TextField(label="Введіть вашу мету", width=300)
+        goal_input = ft.TextField(label="Введіть вашу ціль", width=300)
 
         def save_goal(event):
             goal_text = goal_input.value.strip()

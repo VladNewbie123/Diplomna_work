@@ -16,7 +16,7 @@ def load_user_data():
     except FileNotFoundError:
         # Якщо файл не знайдено, створюється шаблон даних користувача
         return {
-            "name": "Користувач",
+            "name": "",
             "age": "",
             "strength": 0,
             "intelligence": 0,
