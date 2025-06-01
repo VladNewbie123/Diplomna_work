@@ -1,64 +1,47 @@
+# Імпортуємо необхідні модулі з бібліотеки Flet і власні сторінки та компоненти
 import flet as ft
-import json
-from pages.user_details_page import user_details_page
-from pages.personal_development_page import personal_development_page
-from pages.education_page import education_page
-from pages.sport_page import sport_page
-from ui_components import create_header, create_user_status, create_log_panel, create_user_input
-from logic import process_command
+from pages.admin import admin_page  # Сторінка адміністратора
+from pages.user_details_page import user_details_page, update_characteristics  # Сторінка деталей користувача та функція оновлення характеристик
+from pages.personal_development_page import personal_development_page  # Сторінка особистого розвитку
+from pages.education_page import education_page  # Сторінка навчання
+from pages.sport_page import sport_page  # Сторінка спорту
+from ui_components import create_header, create_user_status, create_log_panel, create_user_input  # UI-компоненти
+from logic import process_command  # Обробка команд користувача
+from db import load_user_data, is_admin  # Завантаження даних користувача та перевірка на адміністратора
+from pages.auth_page import get_auth_page  # Сторінка авторизації
 
 
-# Функція для завантаження даних користувача з файлу JSON
-def load_user_data():
-    try:
-        with open("user_data.json", "r", encoding="utf-8") as file:
-            return json.load(file)  # Повертає дані користувача у вигляді словника
-    except FileNotFoundError:
-        # Якщо файл не знайдено, створюється шаблон даних користувача
-        return {
-            "name": "",
-            "age": "",
-            "strength": 0,
-            "intelligence": 0,
-            "speed": 0,
-            "endurance": 0,
-            "level": 1,
-            "experience": 0
-        }
+# Основна сторінка програми після входу користувача
+def main_page(page, max_log_length, user_status, log_panel, user_id):
+    user_data = load_user_data(user_id)  # Завантажуємо дані користувача з бази
+    update_characteristics(user_id)  # Оновлюємо характеристики користувача
 
+    # Функції переходу до відповідних сторінок
+    def navigate_to_personal_development(_):  # Перехід на сторінку особистого розвитку
+        personal_development_page(page, lambda: main_page(page, max_log_length, user_status, log_panel, user_id),
+                                  user_id)
 
-# Основна сторінка програми
-def main_page(page, max_log_length, user_status, log_panel):
-    user_data = load_user_data()  # Завантажуємо дані користувача
+    def navigate_to_education(_):  # Перехід на сторінку навчання
+        education_page(page, lambda: main_page(page, max_log_length, user_status, log_panel, user_id), user_id)
 
-    # Функція для навігації до сторінки особистого розвитку
-    def navigate_to_personal_development(_):
-        personal_development_page(page, lambda: main_page(page, max_log_length, user_status, log_panel))
+    def navigate_to_sport(_):  # Перехід на сторінку спорту
+        sport_page(page, lambda: main_page(page, max_log_length, user_status, log_panel, user_id), user_id)
 
-    # Функція для навігації до сторінки навчання
-    def navigate_to_education(_):
-        education_page(page, lambda: main_page(page, max_log_length, user_status, log_panel))
-
-    # Функція для навігації до сторінки спорту
-    def navigate_to_sport(_):
-        sport_page(page, lambda: main_page(page, max_log_length, user_status, log_panel))
-
-    # Функція для навігації до сторінки з деталями користувача
-    def navigate_to_user_details():
-        user_details_page(page, lambda: main_page(page, max_log_length, user_status, log_panel),
+    def navigate_to_user_details():  # Перехід на сторінку деталей користувача
+        user_details_page(page, lambda: main_page(page, max_log_length, user_status, log_panel, user_id),
                           user_data)
 
-    # Створення заголовка
+    # Створення заголовка програми
     header = create_header()
 
-    # Створення статусу користувача з можливістю переходу на сторінку деталей
-    user_status = create_user_status(navigate_to_user_details)
+    # Створення статусу користувача (наприклад, ім’я, рівень тощо)
+    user_status = create_user_status(user_id, navigate_to_user_details)
 
-    # Модуль для кнопок навігації
+    # Блок з кнопками для переходу до модулів розвитку
     module_panel = ft.Container(
         content=ft.Column(
             [
-                ft.Text("📜 Модулі розвитку", size=20, color="#FFFFFF", weight=ft.FontWeight.BOLD),
+                ft.Text("📜 Модулі розвитку", size=20, color="#FFFFFF", weight=ft.FontWeight.BOLD),  # Назва модуля
                 ft.Row(
                     [
                         ft.ElevatedButton("Особистий розвиток", icon=ft.icons.TRENDING_UP,
@@ -74,25 +57,25 @@ def main_page(page, max_log_length, user_status, log_panel):
         ),
         padding=20,
         margin=10,
-        bgcolor="#3E3E56",  # Фон контейнера
-        border_radius=15,   # Радіус скруглення
-        expand=True,        # Розширює контейнер
+        bgcolor="#3E3E56",  # Темне тло
+        border_radius=15,  # Закруглені кути
+        expand=True,  # Розширення блоку по ширині
     )
 
-    # Створення інтерфейсу для введення команд користувачем
+    # Поле введення команд користувачем (наприклад, "зберегти", "статус")
     user_input = create_user_input(
         lambda command: process_command(command, log_panel, max_log_length)
     )
 
-    # Очищаємо сторінку і додаємо на неї елементи
+    # Очищення сторінки та додавання нових елементів
     page.clean()
     page.add(
         ft.Column(
             [
                 header,  # Додаємо заголовок
-                ft.Row([user_status, module_panel], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),  # Додаємо статус та модуль
-                ft.Row([log_panel], alignment=ft.MainAxisAlignment.CENTER),  # Додаємо панель журналу
-                user_input,  # Додаємо поле для вводу команд
+                ft.Row([user_status, module_panel], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),  # Статус + модулі
+                ft.Row([log_panel], alignment=ft.MainAxisAlignment.CENTER),  # Панель логів (журналу подій)
+                user_input,  # Поле вводу команди
             ],
             spacing=20,
             expand=True,
@@ -100,25 +83,37 @@ def main_page(page, max_log_length, user_status, log_panel):
     )
 
 
-# Функція для запуску програми
+# Головна функція запуску додатку
 def main(page: ft.Page):
-    page.title = "Асистент у стилі RPG"  # Назва вікна
-    page.theme_mode = "light"  # Тема програми
-    page.padding = 10  # Відступи
-    page.bgcolor = "#1E1E2E"  # Колір фону
-    page.window_width = 800  # Ширина вікна
-    page.window_height = 550  # Висота вікна
-    page.window_min_width = 510  # Мінімальна ширина вікна
-    page.window_min_height = 500  # Мінімальна висота вікна
-    page.window_max_width = 900  # Максимальна ширина вікна
-    page.window_max_height = 800  # Максимальна висота вікна
+    # Налаштування вікна програми
+    page.title = "Асистент у стилі RPG"
+    page.theme_mode = "light"  # Світла тема
+    page.padding = 10
+    page.bgcolor = "#1E1E2E"  # Темний фон
+    page.window_width = 800
+    page.window_height = 550
+    page.window_min_width = 510
+    page.window_min_height = 500
+    page.window_max_width = 900
+    page.window_max_height = 800
 
-    max_log_length = 5  # Максимальна кількість записів у журналі
+    max_log_length = 5  # Максимальна кількість рядків у журналі подій
+    log_panel = create_log_panel()  # Створюємо панель журналу
 
-    log_panel = create_log_panel()  # Створення панелі для журналу
+    # Колбек після успішного входу
+    def on_login_success(user_id):
+        page.clean()
 
-    # Перехід на основну сторінку
-    main_page(page, max_log_length, None, log_panel)
+        if is_admin(user_id):  # Якщо це адміністратор — відкриваємо адмінську сторінку
+            admin_page(page)
+        else:  # Інакше — головну сторінку користувача
+            main_page(page, max_log_length, None, log_panel, user_id)
+
+    # Початкова сторінка авторизації
+    page.clean()
+    page.add(get_auth_page(on_login_success))
+    page.update()
 
 
-ft.app(target=main)  # Запуск програми
+# Запуск додатку
+ft.app(target=main)

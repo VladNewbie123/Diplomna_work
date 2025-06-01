@@ -1,10 +1,6 @@
 import flet as ft
-import json
+from db import load_user_data  # Імпортуємо функцію з db.py
 
-# Функція для перечитування даних з файлу user_data.json
-def reload_user_data():
-    with open("user_data.json", "r", encoding="utf-8") as file:
-        return json.load(file)  # Повертає дані з файлу у вигляді словника
 
 # Функція для створення заголовка
 def create_header():
@@ -20,15 +16,22 @@ def create_header():
         alignment=ft.alignment.center,  # Вирівнювання контейнера
     )
 
+
 # Функція для створення статусу користувача
-def create_user_status(navigate_to_user_details):
-    updated_data = reload_user_data()  # Завантажуємо дані користувача
+def create_user_status(user_id, navigate_to_user_details):
+    updated_data = load_user_data(user_id)  # Завантажуємо дані користувача
+    if not updated_data:
+        updated_data = {
+            "level": 1,
+            "experience": 0
+        }
     return ft.Container(
         content=ft.Column(
             [
                 ft.Text(f"🔰 Рівень: {updated_data['level']}", size=18, color="#FFD700", weight=ft.FontWeight.BOLD),
                 ft.Text(f"🧪 Досвід: {updated_data['experience']}/100", size=18, color="#FFFFFF"),
-                ft.ElevatedButton("Деталі користувача", on_click=lambda _: navigate_to_user_details()),  # Кнопка для переходу до деталей користувача
+                ft.ElevatedButton("Деталі користувача", on_click=lambda _: navigate_to_user_details()),
+                # Кнопка для переходу до деталей користувача
             ],
             spacing=10,  # Простір між елементами
         ),
@@ -37,6 +40,7 @@ def create_user_status(navigate_to_user_details):
         bgcolor="#4A4A6A",  # Колір фону контейнера
         border_radius=15,  # Радіус скруглення контейнера
     )
+
 
 # Функція для створення панелі логів
 def create_log_panel():
@@ -48,6 +52,7 @@ def create_log_panel():
         border_radius=15,  # Радіус скруглення
         expand=True,  # Розширення контейнера на весь доступний простір
     )
+
 
 # Функція для створення поля вводу команд користувача
 def create_user_input(on_submit):
